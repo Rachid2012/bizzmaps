@@ -1,6 +1,7 @@
 {
     "name": "bizmapper",
     "version": "1.0.0",
+    "type": "module",
     "description": "Local Business Discovery Platform with Secure API",
     "scripts": {
         "dev": "vercel dev",
