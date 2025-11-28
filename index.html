@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Discover local businesses without websites and unlock new opportunities. Advanced business finder with Google Maps integration.">
+    <div class="hero-background"></div>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <h1 class="hero-title">
+                        Discover Businesses.<br>
+                        <span class="gradient-text">Unlock Opportunities.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Find local businesses without websites and help them grow their digital presence.
+                        Powered by Google Maps Intelligence.
+                    </p>
+            </div>
+        </div>
+
+        <!-- Main App Container -->
+        <div class="app-container">
+            <!-- Search Panel -->
+            <div class="search-panel glass-card">
+                <h2 class="panel-title">
+                    <svg class="title-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" />
+                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    Search Configuration
+                </h2>
+
+                <div class="form-group">
+                    <label for="location-input" class="form-label">Location</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                                fill="currentColor" />
+                        </svg>
+                        <input type="text" id="location-input" class="form-input"
+                            placeholder="Enter city, address, or zip code...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="niche-select" class="form-label">Business Niche</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <select id="niche-select" class="form-input">
+                            <option value="">Select a niche...</option>
+                            <option value="restaurant">Restaurants & Cafes</option>
+                            <option value="retail">Retail & Shopping</option>
+                            <option value="health">Health & Wellness</option>
+                            <option value="beauty">Beauty & Spa</option>
+                            <option value="fitness">Fitness & Gym</option>
+                            <option value="automotive">Automotive Services</option>
+                            <option value="home_services">Home Services</option>
+                            <option value="professional">Professional Services</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="education">Education</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="radius-input" class="form-label">Search Radius: <span id="radius-value">5</span>
+                        km</label>
+                    <input type="range" id="radius-input" class="range-slider" min="1" max="50" value="5">
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="no-website-only" checked>
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-text">Only show businesses without websites</span>
+                    </label>
+                </div>
+
+                <!-- Mini Map for Location Selection -->
+                <div class="form-group map-selector-group">
+                    <div class="map-selector-header">
+                        <label class="form-label">Or Select Location on Map</label>
+                        <button type="button" class="map-toggle-btn" id="map-toggle-btn">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                                    fill="currentColor" />
+                            </svg>
+                            Show Map
+                        </button>
+                    </div>
+                    <div class="mini-map-container" id="mini-map-container" style="display: none;">
+                        <div id="mini-map" class="mini-map"></div>
+                        <div class="map-instructions">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                            Click on the map to select your search location
+                        </div>
+                    </div>
+                </div>
+
+                <button class="search-button" id="search-btn">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" />
+                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    Start Discovery
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section">
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="stats-grid" style="display: none;">
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="total-found">0</div>
+                            <div class="stat-label">Businesses Found</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="no-website">0</div>
+                            <div class="stat-label">Without Website</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor"
+                                    stroke-width="2" />
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke="currentColor"
+                                    stroke-width="2" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="opportunities">0</div>
+                            <div class="stat-label">Opportunities</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Container -->
+                <div class="map-container glass-card" id="map-container" style="display: none;">
+                    <div id="map"></div>
+                </div>
+
+                <!-- Business List -->
+                <div class="business-list" id="business-list"></div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" />
+                            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <h3 class="empty-title">Ready to Discover</h3>
+                    <p class="empty-text">Configure your search parameters and click "Start Discovery" to find local
+                        businesses in your area.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-state" id="loading-state" style="display: none;">
+                    <div class="loader"></div>
+                    <h3 class="loading-title">Searching for Businesses...</h3>
+                    <p class="loading-text">This may take a moment while we scan the area.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Business Details -->
+        <div class="modal" id="business-modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content glass-card">
+                <button class="modal-close" id="modal-close">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+                <div id="modal-body"></div>
+            </div>
+        </div>
+
+        <script src="app.js"></script>
+        </body>
+
+</html>

@@ -1,0 +1,17 @@
+{
+    "name": "bizmapper",
+    "version": "1.0.0",
+    "description": "Local Business Discovery Platform with Secure API",
+    "scripts": {
+        "dev": "vercel dev",
+        "deploy": "vercel --prod"
+    },
+    "keywords": [
+        "business",
+        "maps",
+        "local",
+        "discovery"
+    ],
+    "author": "Your Name",
+    "license": "MIT"
+}
