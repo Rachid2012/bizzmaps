@@ -9,7 +9,7 @@
     --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
     --dark-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
 
-    /* Dark Theme Colors */
+    /* Dark Theme Colors (default) */
     --bg-primary: #0a0a0f;
     --bg-secondary: #12121a;
     --bg-tertiary: #1a1a27;
@@ -52,6 +52,26 @@
     /* Typography */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ===================================
+   LIGHT THEME
+   =================================== */
+body.light-theme {
+    --bg-primary: #f5f7fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8ecf2;
+    --bg-card: rgba(255, 255, 255, 0.8);
+
+    --text-primary: #1a1a2e;
+    --text-secondary: #4a4a6a;
+    --text-tertiary: #7a7a9a;
+
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+
+    --dark-gradient: linear-gradient(135deg, #e0e5ec 0%, #d0d5dc 50%, #c8cdd4 100%);
 }
 
 /* ===================================
@@ -100,7 +120,7 @@ body {
    =================================== */
 .hero-section {
     position: relative;
-    min-height: 75vh;
+    min-height: 40vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -192,6 +212,52 @@ body {
     background-clip: text;
 }
 
+/* Theme Toggle Button */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-medium);
+    backdrop-filter: blur(10px);
+}
+
+.theme-toggle svg {
+    width: 22px;
+    height: 22px;
+    color: var(--text-primary);
+    transition: all var(--transition-medium);
+}
+
+.theme-toggle:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+/* Dark theme: show sun icon, hide moon */
+.theme-toggle .sun-icon {
+    display: block;
+}
+
+.theme-toggle .moon-icon {
+    display: none;
+}
+
+/* Light theme: show moon icon, hide sun */
+body.light-theme .theme-toggle .sun-icon {
+    display: none;
+}
+
+body.light-theme .theme-toggle .moon-icon {
+    display: block;
+}
+
 .nav-actions {
     display: flex;
     gap: var(--space-sm);
@@ -241,7 +307,7 @@ body {
     z-index: 10;
     max-width: 1400px;
     margin: 0 auto;
-    padding: var(--space-2xl) var(--space-lg);
+    padding: var(--space-lg) var(--space-lg);
     text-align: center;
     flex: 1;
     display: flex;
@@ -1393,17 +1459,20 @@ select.form-input {
         print-color-adjust: exact;
     }
 }
+
 /* ===================================
    GOOGLE PLACES AUTOCOMPLETE DROPDOWN
    =================================== */
 .pac-container {
-    background-color: #1a1a27 !important; /* Force dark background */
+    background-color: #1a1a27 !important;
+    /* Force dark background */
     border: 1px solid rgba(102, 126, 234, 0.3) !important;
     border-radius: 12px !important;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     font-family: 'Inter', sans-serif !important;
     margin-top: 8px !important;
-    z-index: 999999 !important; /* Extremely high z-index */
+    z-index: 999999 !important;
+    /* Extremely high z-index */
     color: #ffffff !important;
 }
 
@@ -1417,7 +1486,8 @@ select.form-input {
     font-size: 14px !important;
 }
 
-.pac-item:hover, .pac-item-selected {
+.pac-item:hover,
+.pac-item-selected {
     background-color: rgba(102, 126, 234, 0.1) !important;
     color: #ffffff !important;
 }
@@ -1430,13 +1500,15 @@ select.form-input {
 }
 
 .pac-icon {
-    filter: invert(1) opacity(0.5); /* Make icon visible on dark bg */
+    filter: invert(1) opacity(0.5);
+    /* Make icon visible on dark bg */
     margin-right: 10px !important;
     display: block !important;
 }
 
 .pac-matched {
-    color: #667eea !important; /* Highlight matched text */
+    color: #667eea !important;
+    /* Highlight matched text */
     font-weight: 700 !important;
 }
 

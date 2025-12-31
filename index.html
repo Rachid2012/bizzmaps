@@ -29,6 +29,18 @@
                     </svg>
                     <span class="logo-text">BizMapper</span>
                 </div>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" />
+                        <path
+                            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
             </div>
         </nav>
 
@@ -225,6 +237,18 @@
                             <option value="tour operator">Tour Operator</option>
                         </optgroup>
 
+                        <!-- Delivery & Transport -->
+                        <optgroup label="🚚 Delivery & Transport">
+                            <option value="courier">Courier / Delivery Service</option>
+                            <option value="taxi">Taxi / Rideshare</option>
+                            <option value="freight">Freight / Logistics</option>
+                            <option value="bus service">Bus Service</option>
+                            <option value="trucking">Trucking Company</option>
+                            <option value="shipping">Shipping Company</option>
+                            <option value="food delivery">Food Delivery</option>
+                            <option value="package delivery">Package Delivery</option>
+                        </optgroup>
+
                         <!-- Other Services -->
                         <optgroup label="🔧 Other Services">
                             <option value="laundry">Laundry / Dry Cleaning</option>
@@ -290,7 +314,12 @@
 
         <!-- Results Section -->
         <div class="results-section">
-            <!-- Stats Cards -->
+            <!-- Map Container -->
+            <div class="map-container glass-card" id="map-container" style="display: none;">
+                <div id="map"></div>
+            </div>
+
+            <!-- Stats Cards (below map) -->
             <div class="stats-grid" id="stats-grid" style="display: none;">
                 <div class="stat-card glass-card">
                     <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -334,11 +363,6 @@
                         <div class="stat-label">Opportunities</div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Map Container -->
-            <div class="map-container glass-card" id="map-container" style="display: none;">
-                <div id="map"></div>
             </div>
 
             <!-- Business List -->

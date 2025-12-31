@@ -51,6 +51,7 @@ window.initApp = function () {
     loadSavedSearches();
     initAutocomplete();
     initMainMap();
+    initThemeToggle();
 };
 
 function init() {
@@ -61,10 +62,70 @@ function init() {
         loadSavedSearches();
         initAutocomplete();
         initMainMap();
+        initThemeToggle();
     } else {
         console.log('Waiting for Google Maps callback...');
         // The callback will trigger window.initApp
     }
+}
+
+// ===================================
+// THEME TOGGLE
+// ===================================
+function initThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('theme');
+
+    // Apply saved theme or default to dark
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    console.log('✅ Theme toggle initialized');
+}
+
+function toggleTheme() {
+    const body = document.body;
+    const isLight = body.classList.toggle('light-theme');
+
+    // Save preference
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+
+    // Update map style if map exists
+    if (state.map) {
+        state.map.setOptions({
+            styles: isLight ? getLightMapStyle() : getDarkMapStyle()
+        });
+    }
+
+    console.log(`Theme switched to: ${isLight ? 'light' : 'dark'}`);
+}
+
+function getLightMapStyle() {
+    return [
+        { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+        { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#333333" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#c8e6c9" }] },
+        { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#4caf50" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e0e0e0" }] },
+        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+        { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#c0c0c0" }] },
+        { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+        { featureType: "transit", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+        { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9d6df" }] },
+        { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+        { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] }
+    ];
 }
 
 function setupEventListeners() {
@@ -189,6 +250,11 @@ async function performSearch() {
         return;
     }
 
+    // Scroll to map/results area when starting a new search
+    if (elements.mapContainer) {
+        elements.mapContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     elements.loadingState.style.display = 'flex';
     elements.emptyState.style.display = 'none';
     elements.businessList.innerHTML = '';
@@ -270,50 +336,101 @@ function fetchBusinessesFromGoogle(niche, location) {
         }
 
         const service = new google.maps.places.PlacesService(state.map);
-
-        // Create a LatLng object for the location
         const latLng = new google.maps.LatLng(location.lat, location.lng);
 
-        // For "all" businesses, use textSearch which is more flexible
-        // For specific niches, use nearbySearch with keyword
-        if (niche === 'all') {
-            // Use textSearch with a generic query for all businesses
-            const request = {
-                location: latLng,
-                radius: state.searchParams.radius * 1000,
-                query: 'business'
-            };
+        // Get search keywords based on niche (including variations)
+        const keywords = getSearchKeywords(niche);
+        console.log(`Searching for: ${keywords.join(', ')}`);
 
-            console.log('textSearch request (all businesses):', request);
+        // Perform multiple searches with different keywords for better coverage
+        const searchPromises = keywords.map(keyword => {
+            return new Promise(resolveSearch => {
+                const request = {
+                    location: latLng,
+                    radius: state.searchParams.radius * 1000,
+                    query: keyword
+                };
 
-            service.textSearch(request, (results, status) => {
-                handleSearchResults(results, status, niche, service, resolve, reject);
+                console.log('textSearch request:', request);
+
+                service.textSearch(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK) {
+                        console.log(`Found ${results.length} results for "${keyword}"`);
+                        resolveSearch(results);
+                    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                        console.log(`Zero results for "${keyword}"`);
+                        resolveSearch([]);
+                    } else {
+                        console.warn(`Search error for "${keyword}": ${status}`);
+                        resolveSearch([]);
+                    }
+                });
             });
-        } else {
-            // Use nearbySearch for specific niches
-            const request = {
-                location: latLng,
-                radius: state.searchParams.radius * 1000,
-                keyword: niche
-            };
+        });
 
-            console.log('nearbySearch request:', request);
+        Promise.all(searchPromises).then(allResults => {
+            // Flatten and deduplicate results by place_id
+            const allPlaces = allResults.flat();
+            const uniquePlaces = [];
+            const seenIds = new Set();
 
-            service.nearbySearch(request, (results, status) => {
-                handleSearchResults(results, status, niche, service, resolve, reject);
-            });
-        }
+            for (const place of allPlaces) {
+                if (!seenIds.has(place.place_id)) {
+                    seenIds.add(place.place_id);
+                    uniquePlaces.push(place);
+                }
+            }
+
+            console.log(`Total unique results: ${uniquePlaces.length}`);
+
+            // Limit to 40 results for API quota (increased from 20)
+            const limitedResults = uniquePlaces.slice(0, 40);
+
+            handleSearchResults(limitedResults, 'OK', niche, service, resolve, reject);
+        }).catch(err => reject(err));
     });
 }
 
+// Get search keywords based on niche - includes variations for better coverage
+function getSearchKeywords(niche) {
+    // Keyword mappings with variations (including French for Morocco/French-speaking regions)
+    const keywordMap = {
+        // Transport & Delivery variations
+        'courier': ['courier', 'delivery service', 'livraison'],
+        'taxi': ['taxi', 'rideshare', 'cab service'],
+        'freight': ['freight', 'logistics', 'transport de marchandises', 'logistique', 'cargo'],
+        'bus service': ['bus service', 'bus company', 'transport en commun'],
+        'trucking': ['trucking', 'truck company', 'transport', 'société de transport', 'camion'],
+        'shipping': ['shipping company', 'shipping', 'expédition'],
+        'food delivery': ['food delivery', 'restaurant delivery', 'livraison repas'],
+        'package delivery': ['package delivery', 'parcel delivery', 'livraison colis'],
+        'moving company': ['moving company', 'movers', 'déménagement'],
+
+        // Other common niches with variations
+        'restaurant': ['restaurant', 'restauration'],
+        'cafe': ['cafe', 'coffee shop', 'café'],
+        'hotel': ['hotel', 'hôtel', 'lodging'],
+        'gym': ['gym', 'fitness', 'salle de sport'],
+        'dentist': ['dentist', 'dental clinic', 'dentiste'],
+        'doctor': ['doctor', 'medical clinic', 'médecin', 'clinique'],
+        'lawyer': ['lawyer', 'law office', 'avocat', 'cabinet juridique'],
+        'accountant': ['accountant', 'accounting firm', 'comptable'],
+        'real estate agency': ['real estate', 'agence immobilière', 'immobilier'],
+        'plumber': ['plumber', 'plombier'],
+        'electrician': ['electrician', 'électricien'],
+
+        // Default - just use the niche as-is
+        'default': [niche]
+    };
+
+    return keywordMap[niche] || keywordMap['default'];
+}
+
 function handleSearchResults(results, status, niche, service, resolve, reject) {
-    if (status === google.maps.places.PlacesServiceStatus.OK) {
-        console.log(`Found ${results.length} results`);
+    if (status === 'OK' || (Array.isArray(results) && results.length > 0)) {
+        console.log(`Processing ${results.length} results`);
 
-        // Limit to 20 results for API quota
-        const limitedResults = results.slice(0, 20);
-
-        const detailPromises = limitedResults.map(place => {
+        const detailPromises = results.map(place => {
             return new Promise(resolveDetail => {
                 service.getDetails({
                     placeId: place.place_id,
@@ -347,7 +464,7 @@ function handleSearchResults(results, status, niche, service, resolve, reject) {
             resolve(mappedBusinesses);
         }).catch(err => reject(err));
 
-    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS || (Array.isArray(results) && results.length === 0)) {
         console.log('Zero results');
         resolve([]);
     } else {
