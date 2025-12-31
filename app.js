@@ -43,14 +43,33 @@ const elements = {
 // ===================================
 // INITIALIZATION
 // ===================================
-function init() {
+
+// Expose initApp globally for the Google Maps callback
+window.initApp = function () {
+    console.log('🚀 initApp called - Google Maps is ready');
     setupEventListeners();
     loadSavedSearches();
     initAutocomplete();
-    initMainMap(); // Display map on page load
+    initMainMap();
+};
+
+function init() {
+    // Check if Google Maps is already loaded
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+        console.log('Google Maps already loaded, initializing...');
+        setupEventListeners();
+        loadSavedSearches();
+        initAutocomplete();
+        initMainMap();
+    } else {
+        console.log('Waiting for Google Maps callback...');
+        // The callback will trigger window.initApp
+    }
 }
 
 function setupEventListeners() {
+    if (!elements.radiusInput) return; // Guard against missing elements
+
     elements.radiusInput.addEventListener('input', (e) => {
         elements.radiusValue.textContent = e.target.value;
         state.searchParams.radius = parseInt(e.target.value);
@@ -67,48 +86,76 @@ function setupEventListeners() {
     // Search button
     elements.searchBtn.addEventListener('click', performSearch);
 
-    // Export button
-    elements.exportBtn.addEventListener('click', exportResults);
+    // Export button - check if element exists
+    if (elements.exportBtn) {
+        elements.exportBtn.addEventListener('click', exportResults);
+    }
 
-    // Saved searches button
-    elements.savedBtn.addEventListener('click', showSavedSearches);
+    // Saved searches button - check if element exists
+    if (elements.savedBtn) {
+        elements.savedBtn.addEventListener('click', showSavedSearches);
+    }
 
     // Modal close
-    elements.modalClose.addEventListener('click', closeModal);
-    elements.modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+    if (elements.modalClose) {
+        elements.modalClose.addEventListener('click', closeModal);
+    }
+    if (elements.modal) {
+        const overlay = elements.modal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeModal);
+        }
+    }
 
     // Form inputs
     elements.locationInput.addEventListener('input', (e) => {
         state.searchParams.location = e.target.value;
+        // Reset lat/lng when user types manually
+        state.searchParams.lat = null;
+        state.searchParams.lng = null;
     });
 
     elements.nicheSelect.addEventListener('change', (e) => {
         state.searchParams.niche = e.target.value;
     });
+
+    console.log('✅ Event listeners set up');
 }
 
 function initAutocomplete() {
-    // Wait for Google Maps API to load
+    // Check if Google Maps Places is available
     if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
-        console.log('Waiting for Google Maps API to load...');
-        setTimeout(initAutocomplete, 100);
+        console.error('❌ Google Maps Places API not available');
+        return;
+    }
+
+    if (!elements.locationInput) {
+        console.error('❌ Location input element not found');
         return;
     }
 
     try {
-        // Initialize autocomplete with options for city suggestions
+        // Initialize autocomplete with broader options (not just cities)
         const autocomplete = new google.maps.places.Autocomplete(elements.locationInput, {
-            types: ['(cities)'], // Suggest cities
-            fields: ['formatted_address', 'geometry', 'name'] // Get location data
+            types: ['geocode'], // Allow any geocodable address
+            fields: ['formatted_address', 'geometry', 'name', 'address_components']
         });
+
+        // Bind autocomplete to map bounds if map exists
+        if (state.map) {
+            autocomplete.bindTo('bounds', state.map);
+        }
 
         // Listen for place selection
         autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace();
+            console.log('Place selected:', place);
 
             if (place.geometry && place.geometry.location) {
                 // Update state with selected location
                 state.searchParams.location = place.formatted_address || place.name;
+                state.searchParams.lat = place.geometry.location.lat();
+                state.searchParams.lng = place.geometry.location.lng();
                 elements.locationInput.value = place.formatted_address || place.name;
 
                 // Update map to show selected location
@@ -122,12 +169,12 @@ function initAutocomplete() {
 
                 showNotification(`Location set to: ${place.name || place.formatted_address}`, 'success');
             } else {
-                // Fallback if no geometry
+                console.log('No geometry for place, using text value');
                 state.searchParams.location = elements.locationInput.value;
             }
         });
 
-        console.log('✅ Autocomplete initialized with dropdown menu!');
+        console.log('✅ Autocomplete initialized successfully!');
     } catch (error) {
         console.error('Error initializing autocomplete:', error);
     }
@@ -136,7 +183,7 @@ function initAutocomplete() {
 // ===================================
 // SEARCH FUNCTIONALITY
 // ===================================
-function performSearch() {
+async function performSearch() {
     if (!state.searchParams.location || !state.searchParams.niche) {
         showNotification('Please enter both location and niche', 'error');
         return;
@@ -144,16 +191,47 @@ function performSearch() {
 
     elements.loadingState.style.display = 'flex';
     elements.emptyState.style.display = 'none';
+    elements.businessList.innerHTML = '';
 
-    // Simulate API call with mock data
-    setTimeout(() => {
-        state.businesses = generateMockBusinesses(state.searchParams.niche, 15);
+    try {
+        // Ensure we have coordinates
+        if (!state.searchParams.lat) {
+            console.log('Geocoding location...');
+            await geocodeLocation(state.searchParams.location);
+        }
+
+        console.log(`Searching for ${state.searchParams.niche} near ${state.searchParams.lat}, ${state.searchParams.lng}`);
+
+        const businesses = await fetchBusinessesFromGoogle(state.searchParams.niche, {
+            lat: state.searchParams.lat,
+            lng: state.searchParams.lng
+        });
+
+        state.businesses = businesses;
         filterBusinesses();
+
+        // Update stats and display
+        if (state.filteredBusinesses.length === 0) {
+            showNotification('No businesses found matching your criteria.', 'info');
+        } else {
+            showNotification(`Found ${state.filteredBusinesses.length} businesses!`, 'success');
+        }
+
         displayResults();
         saveSearch();
+
+    } catch (error) {
+        console.error('Search error:', error);
+        showNotification('Error performing search. Please try again.', 'error');
+        elements.businessList.innerHTML = `
+            <div class="empty-state">
+                <h3 class="empty-title">Search Failed</h3>
+                <p class="empty-text">${error.message || 'An unexpected error occurred.'}</p>
+            </div>
+        `;
+    } finally {
         elements.loadingState.style.display = 'none';
-        showNotification('Search completed successfully!', 'success');
-    }, 1500);
+    }
 }
 
 function filterBusinesses() {
@@ -162,43 +240,120 @@ function filterBusinesses() {
         : state.businesses;
 }
 
-function generateMockBusinesses(niche, count) {
-    const businesses = [];
-    const names = {
-        restaurant: ['The Golden Spoon', 'Mama Mia Trattoria', 'Sunrise Cafe', 'Ocean View Bistro', 'Urban Kitchen'],
-        retail: ['Fashion Hub', 'Trendy Boutique', 'Style Station', 'The Gift Shop', 'Home Decor Plus'],
-        health: ['Wellness Center', 'Family Health Clinic', 'Care Medical', 'HealthFirst', 'Community Health'],
-        beauty: ['Glamour Salon', 'Beauty Haven', 'Style & Grace', 'The Spa Retreat', 'Nail Art Studio'],
-        fitness: ['PowerFit Gym', 'Yoga Oasis', 'CrossFit Zone', 'Body & Soul', 'Fitness First'],
-        automotive: ['Quick Auto Repair', 'Elite Car Service', 'AutoCare Center', 'Pro Mechanics', 'Speed Shop'],
-        home_services: ['HandyPro Services', 'HomeFix Solutions', 'Elite Cleaning', 'Garden Masters', 'Plumbing Pros'],
-        professional: ['Legal Associates', 'AccountPro', 'Business Consultants', 'TechSolutions', 'Marketing Experts'],
-        entertainment: ['Game Zone', 'Cinema Palace', 'Fun World', 'Entertainment Hub', 'Party Central'],
-        education: ['Learn Academy', 'Bright Futures', 'Knowledge Center', 'Study Hub', 'Tutoring Plus']
-    };
+function geocodeLocation(address) {
+    return new Promise((resolve, reject) => {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const location = results[0].geometry.location;
+                state.searchParams.lat = location.lat();
+                state.searchParams.lng = location.lng();
 
-    const streets = ['Main St', 'Oak Ave', 'Maple Dr', 'Pine Rd', 'Cedar Ln', 'Elm St', 'Washington Blvd'];
-
-    for (let i = 0; i < count; i++) {
-        const nameList = names[niche] || names.retail;
-        const hasWebsite = Math.random() > 0.6; // 40% have websites
-
-        businesses.push({
-            id: `biz-${Date.now()}-${i}`,
-            name: nameList[i % nameList.length] + (i >= nameList.length ? ` #${Math.floor(i / nameList.length) + 1}` : ''),
-            category: niche,
-            address: `${Math.floor(Math.random() * 9000) + 1000} ${streets[Math.floor(Math.random() * streets.length)]}`,
-            phone: `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-            email: hasWebsite ? null : `contact@${nameList[i % nameList.length].toLowerCase().replace(/\s+/g, '')}.com`,
-            website: hasWebsite ? `https://www.${nameList[i % nameList.length].toLowerCase().replace(/\s+/g, '')}.com` : null,
-            rating: (Math.random() * 2 + 3).toFixed(1),
-            reviews: Math.floor(Math.random() * 200) + 10,
-            lat: 40.7128 + (Math.random() - 0.5) * 0.1,
-            lng: -74.0060 + (Math.random() - 0.5) * 0.1
+                // Update map if available
+                if (state.map) {
+                    state.map.panTo(location);
+                    updateRadiusCircle(location, state.searchParams.radius);
+                }
+                resolve(location);
+            } else {
+                reject(new Error('Geocoding failed: ' + status));
+            }
         });
-    }
+    });
+}
 
-    return businesses;
+function fetchBusinessesFromGoogle(niche, location) {
+    return new Promise((resolve, reject) => {
+        if (!state.map) {
+            reject(new Error("Map not initialized"));
+            return;
+        }
+
+        const service = new google.maps.places.PlacesService(state.map);
+
+        // Create a LatLng object for the location
+        const latLng = new google.maps.LatLng(location.lat, location.lng);
+
+        // For "all" businesses, use textSearch which is more flexible
+        // For specific niches, use nearbySearch with keyword
+        if (niche === 'all') {
+            // Use textSearch with a generic query for all businesses
+            const request = {
+                location: latLng,
+                radius: state.searchParams.radius * 1000,
+                query: 'business'
+            };
+
+            console.log('textSearch request (all businesses):', request);
+
+            service.textSearch(request, (results, status) => {
+                handleSearchResults(results, status, niche, service, resolve, reject);
+            });
+        } else {
+            // Use nearbySearch for specific niches
+            const request = {
+                location: latLng,
+                radius: state.searchParams.radius * 1000,
+                keyword: niche
+            };
+
+            console.log('nearbySearch request:', request);
+
+            service.nearbySearch(request, (results, status) => {
+                handleSearchResults(results, status, niche, service, resolve, reject);
+            });
+        }
+    });
+}
+
+function handleSearchResults(results, status, niche, service, resolve, reject) {
+    if (status === google.maps.places.PlacesServiceStatus.OK) {
+        console.log(`Found ${results.length} results`);
+
+        // Limit to 20 results for API quota
+        const limitedResults = results.slice(0, 20);
+
+        const detailPromises = limitedResults.map(place => {
+            return new Promise(resolveDetail => {
+                service.getDetails({
+                    placeId: place.place_id,
+                    fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total', 'geometry', 'types', 'url']
+                }, (placeDetails, detailStatus) => {
+                    if (detailStatus === google.maps.places.PlacesServiceStatus.OK) {
+                        resolveDetail({ ...place, ...placeDetails });
+                    } else {
+                        resolveDetail(place); // Fallback to basic info
+                    }
+                });
+            });
+        });
+
+        Promise.all(detailPromises).then(detailedResults => {
+            const mappedBusinesses = detailedResults.map((place, index) => ({
+                id: place.place_id || `biz-${index}`,
+                name: place.name,
+                category: niche === 'all' ? (place.types ? place.types[0] : 'business') : niche,
+                address: place.formatted_address || place.vicinity,
+                phone: place.formatted_phone_number,
+                email: null,
+                website: place.website || null,
+                rating: (place.rating || 0).toFixed(1),
+                reviews: place.user_ratings_total || 0,
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+                googleUrl: place.url,
+                types: place.types || []
+            }));
+            resolve(mappedBusinesses);
+        }).catch(err => reject(err));
+
+    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        console.log('Zero results');
+        resolve([]);
+    } else {
+        console.error('Places API Error:', status);
+        reject(new Error(`Places API Error: ${status}`));
+    }
 }
 
 function displayResults() {
@@ -879,6 +1034,3 @@ document.head.appendChild(style);
 // START APPLICATION
 // ===================================
 document.addEventListener('DOMContentLoaded', init);
-// Force update: 11/28/2025 06:47:31
-/ /   U p d a t e   v 2  
- 
